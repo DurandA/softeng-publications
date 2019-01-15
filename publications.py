@@ -1,40 +1,55 @@
 import argparse
+import io
+import logging
+from hashlib import sha256
+from zipfile import ZipFile
+
 import bibtexparser
+from bibtexparser.bibdatabase import BibDatabase
 
 parser = argparse.ArgumentParser()
 parser.add_argument("bibtex")
+parser.add_argument("--zipfile", help="save bibtex entries")
 args = parser.parse_args()
 
 with open(args.bibtex) as bibtex_file:
     bib_database = bibtexparser.bparser.BibTexParser(common_strings=True).parse_file(bibtex_file)
 
 #print('<div class="campusviews-timetable">')
-for entry in bib_database.entries:
-    if 'year' not in entry:
-        print(f"""year missing: {entry['title']}""")
-    if 'publisher' not in entry:
-        entry['publisher'] = entry['organization']
-    if 'booktitle' not in entry:
-        entry['booktitle'] = entry['journal']
+zfio = io.BytesIO()
+with ZipFile(zfio, mode='w') as zf:
+    for entry in bib_database.entries:
+        if 'year' not in entry:
+            raise Warning("year missing in {}".format(entry['title']))
 
-    url = (f"""<div class="col-md-2">
-                        <a class="link external" href="{entry['url']}">Link</a>
-                    </div>""" if 'url' in entry else '')
-    bibtex = (f"""<div class="col-md-2">
-                        <a class="link download" href="{entry['bibtex']}">Bibtex</a>
-                    </div>""" if 'bibtex' in entry else '')
-    pdf = (f"""<div class="col-md-2">
-                        <a class="link download" href="{entry['pdf']}">PDF</a>
-                    </div>""" if 'pdf' in entry else '')
+        db = BibDatabase()
+        db.entries.append(entry)
 
-    html_article = (
-    f"""<article class="agenda--teaser ">
+        bibtexio = io.StringIO()
+        bibtexparser.dump(db, bibtexio)
+        digest = sha256(bibtexio.getvalue().encode('utf-8')).hexdigest()
+        filename = digest + '.bib'
+        zf.writestr(filename, bibtexio.getvalue())
+        bibtexio.close()
+
+        publisher = next(entry[k] for k in ['publisher', 'organization'] if k in entry)
+        booktitle = next(entry[k] for k in ['booktitle', 'journal'] if k in entry)
+
+        url = (f"""<div class="col-md-2">
+                            <a class="link external" href="{entry['url']}">Link</a>
+                        </div>""" if 'url' in entry else '')
+        pdf = (f"""<div class="col-md-2">
+                            <a class="link download" href="{entry['pdf']}">PDF</a>
+                        </div>""" if 'pdf' in entry else '')
+
+        html_article = (
+f"""<article class="agenda--teaser ">
     <div class="agenda--description bg-grey-light">
         <div class="bg-green fac" style="height: 0.31em; width:100%;">&nbsp;</div>
         <div class="box-sides" style="position: relative; padding-left: 1em; padding-right: 1em; padding-bottom: 1em; margin-top: 1em;">
             <div class="title-table">
                 <h4>
-                    <small>{entry['booktitle']} | {entry['publisher']} | {entry['year']}</small><br>
+                    <small>{booktitle} | {publisher} | {entry['year']}</small><br>
                     {entry['title']}
                 </h4>
             </div>
@@ -45,12 +60,18 @@ for entry in bib_database.entries:
                         <span><i class="fa fa-user" style="display: inline-block;width:30px;"></i>{entry['author']}</span>
                     </div>
                     {url}
-                    {bibtex}
+                    <div class="col-md-2">
+                        <a class="link download" href="assets/public/files/research/publications/bibtex/{filename}">Bibtex</a>
+                    </div>
                     {pdf}
                 </div>
             <p></p>
         </div>
     </div>
 </article>""")
-    print(html_article)
+        print(html_article)
 #print('</div>')
+
+if args.zipfile:
+    with open(args.zipfile, "wb") as f: # use `wb` mode
+        f.write(zfio.getvalue())

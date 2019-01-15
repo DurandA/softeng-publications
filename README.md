@@ -15,13 +15,14 @@ sudo pip3 install -r requirements.txt
 ## Usage
 
 ```
-usage: publications.py [-h] bibtex
+usage: publications.py [-h] [--zipfile ZIPFILE] bibtex
 
 positional arguments:
   bibtex
 
 optional arguments:
-  -h, --help  show this help message and exit
+  -h, --help         show this help message and exit
+  --zipfile ZIPFILE  save bibtex entries
 ```
 
 ## Minimal BibTeX entry
