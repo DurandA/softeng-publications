@@ -6,6 +6,8 @@ from zipfile import ZipFile
 
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
+from bibtexparser.bparser import BibTexParser
+from bibtexparser.customization import convert_to_unicode
 
 parser = argparse.ArgumentParser()
 parser.add_argument("bibtex")
@@ -13,7 +15,9 @@ parser.add_argument("--zipfile", help="save bibtex entries")
 args = parser.parse_args()
 
 with open(args.bibtex) as bibtex_file:
-    bib_database = bibtexparser.bparser.BibTexParser(common_strings=True).parse_file(bibtex_file)
+    parser = BibTexParser(common_strings=True)
+    parser.customization = convert_to_unicode
+    bib_database = bibtexparser.load(bibtex_file, parser=parser)
 
 #print('<div class="campusviews-timetable">')
 zfio = io.BytesIO()
