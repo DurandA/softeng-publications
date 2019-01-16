@@ -32,7 +32,7 @@ with ZipFile(zfio, mode='w') as zf:
         bibtexio = io.StringIO()
         bibtexparser.dump(db, bibtexio)
         digest = sha256(bibtexio.getvalue().encode('utf-8')).hexdigest()
-        filename = digest + '.bib'
+        filename = digest + '.txt'
         zf.writestr(filename, bibtexio.getvalue())
         bibtexio.close()
 
@@ -43,7 +43,7 @@ with ZipFile(zfio, mode='w') as zf:
                             <a class="link external" href="{entry['url']}">Link</a>
                         </div>""" if 'url' in entry else '')
         pdf = (f"""<div class="col-md-2">
-                            <a class="link download" href="{entry['pdf']}">PDF</a>
+                            <a class="link download" href="assets/public/files/research/publications/pdf/{entry['pdf']}">PDF</a>
                         </div>""" if 'pdf' in entry else '')
 
         html_article = (
